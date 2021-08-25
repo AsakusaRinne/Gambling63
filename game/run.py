@@ -16,31 +16,60 @@ class PlayerState(Enum):
     playing = 1
     stop = 2
 
+
 class Player(object):
     def __init__(self, name):
         self.name = name
         self.state = PlayerState.wait
 
     def act(self):
+        '''
+        The act of the player in a round.
+
+        This function should be overrided in its derived classes.
+        This function should return an integer,
+        which means quit the game if it's <= 0 and the value the player declares if it's >0
+        :return:
+        '''
         raise NotImplementedError
 
+    def reset(self):
+        self.state = PlayerState.wait
+
 class GamblingContext(object):
-    def __init__(self, max_sum = 63, player_num = 3, cards = cards_example):
+    def __init__(self, players, max_sum = 63, cards = cards_example):
         self.max_sum = max_sum
-        self.player_num = player_num
+        if isinstance(players, list):
+            self.players = players
+        else:
+            raise NotImplementedError
         self.cards = []
         for key, value in cards:
             self.cards += [key for i in range(value)]
+
+        self.real_sum = 0
+        self.declare_sum = 0
+        self.round_num = 0
 
     def shuffle(self):
         random.shuffle(self.cards)
 
     def restart(self):
-        ## shuffle the cards
-        pass
+        self.real_sum = 0
+        self.declare_sum = 0
+        self.round_num = 0
+        self.start()
 
     def start(self):
-        pass
+        self.shuffle()
 
     def next_round(self):
-        pass
+        card_value = self.cards[self.round_num]
+        self.round_num += 1
+        self.real_sum += card_value
+        for player in self.players:
+            r = player.act()
+            if r < 0:
+                player.state = PlayerState.stop
+            else:
+                self.declare_sum += r
